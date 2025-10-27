@@ -37,11 +37,17 @@ export default async function ProposalPage({
     .order('location')
     .order('category');
 
-  const grouped: Record<string, any[]> = {};
+  type LineItem = {
+    id: string;
+    location: string | null;
+    [key: string]: unknown;
+  };
+  
+  const grouped: Record<string, LineItem[]> = {};
   lineItems?.forEach((item) => {
     const loc = item.location || 'Uncategorized';
     if (!grouped[loc]) grouped[loc] = [];
-    grouped[loc].push(item);
+    grouped[loc].push(item as LineItem);
   });
 
   return (

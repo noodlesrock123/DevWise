@@ -78,10 +78,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ proposal });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: error.message || 'Upload failed' },
+      { error: error instanceof Error ? error.message : 'Upload failed' },
       { status: 500 }
     );
   }

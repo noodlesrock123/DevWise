@@ -20,9 +20,9 @@ export async function GET(
 
     return NextResponse.json({ lineItem });
 
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -51,7 +51,7 @@ export async function PATCH(
       );
     }
 
-    const updateData: any = { ...body };
+    const updateData: Record<string, unknown> = { ...body };
 
     if (!current.is_edited) {
       updateData.is_edited = true;
@@ -73,9 +73,9 @@ export async function PATCH(
 
     return NextResponse.json({ lineItem });
 
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -99,9 +99,9 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
 
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

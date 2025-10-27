@@ -1,6 +1,18 @@
 import Link from 'next/link';
 
-export default function ProposalCard({ proposal }: { proposal: any }) {
+type ProposalCardProps = {
+  proposal: {
+    id: string;
+    contractor_name: string;
+    created_at: string;
+    extraction_status: string;
+    total_amount?: number | null;
+    file_name: string;
+    file_type?: string | null;
+  };
+};
+
+export default function ProposalCard({ proposal }: ProposalCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':

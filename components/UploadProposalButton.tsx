@@ -49,8 +49,8 @@ export default function UploadProposalButton({
       setIsOpen(false);
       router.refresh();
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setLoading(false);
     }

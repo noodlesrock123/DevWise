@@ -1,6 +1,20 @@
 'use client';
 
-export default function LineItemRow({ item }: { item: any }) {
+type LineItemRowProps = {
+  item: {
+    id: string;
+    category?: string | null;
+    description: string;
+    is_edited?: boolean;
+    party?: { name: string } | null;
+    quantity?: number | null;
+    unit?: string | null;
+    unit_price?: number | null;
+    total_price: number;
+  };
+};
+
+export default function LineItemRow({ item }: LineItemRowProps) {
   return (
     <tr className="border-b hover:bg-gray-50">
       <td className="px-4 py-3">

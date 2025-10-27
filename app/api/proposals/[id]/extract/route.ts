@@ -145,7 +145,15 @@ IMPORTANT:
       partyId = newParty?.id;
     }
 
-    const lineItemsToInsert = extracted.line_items.map((item: any) => ({
+    const lineItemsToInsert = extracted.line_items.map((item: {
+      location?: string;
+      category?: string;
+      description: string;
+      unit?: string;
+      quantity?: number;
+      unit_price?: number;
+      total_price: number;
+    }) => ({
       user_id: user.id,
       proposal_id: proposalId,
       party_id: partyId,
@@ -167,7 +175,7 @@ IMPORTANT:
     }
 
     const totalAmount = extracted.line_items.reduce(
-      (sum: number, item: any) => sum + (item.total_price || 0),
+      (sum: number, item: { total_price: number }) => sum + (item.total_price || 0),
       0
     );
 
@@ -187,7 +195,7 @@ IMPORTANT:
       total_amount: totalAmount,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Extraction error:', error);
 
     const supabase = createServerClient();
@@ -197,7 +205,7 @@ IMPORTANT:
       .eq('id', params.id);
 
     return NextResponse.json(
-      { error: error.message || 'Extraction failed' },
+      { error: error instanceof Error ? error.message : 'Extraction failed' },
       { status: 500 }
     );
   }

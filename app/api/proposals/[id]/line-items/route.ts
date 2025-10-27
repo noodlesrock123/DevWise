@@ -22,9 +22,9 @@ export async function GET(
 
     return NextResponse.json({ lineItems });
 
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -55,9 +55,9 @@ export async function POST(
 
     return NextResponse.json({ lineItem });
 
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
