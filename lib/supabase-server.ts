@@ -1,14 +1,7 @@
-import { createBrowserClient } from '@supabase/ssr';
 import { createServerClient as createSupabaseServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export const createClient = () =>
-  createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-export const createServerClient = () => {
+export function createServerClient() {
   const cookieStore = cookies();
 
   return createSupabaseServerClient(
@@ -16,13 +9,18 @@ export const createServerClient = () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
         },
       },
     }
   );
-};
+}
 
 export async function requireAuth() {
   const supabase = createServerClient();

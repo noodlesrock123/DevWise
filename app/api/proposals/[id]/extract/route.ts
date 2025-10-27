@@ -1,6 +1,7 @@
-import { requireAuth, createServerClient } from '@/lib/supabase';
+import { requireAuth, createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+// @ts-expect-error - pdf-parse has incorrect TypeScript definitions
 import pdf from 'pdf-parse';
 import * as XLSX from 'xlsx';
 

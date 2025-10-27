@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import LineItemRow from '@/components/LineItemRow';
 import React from 'react';
@@ -40,6 +40,14 @@ export default async function ProposalPage({
   type LineItem = {
     id: string;
     location: string | null;
+    category?: string | null;
+    description: string;
+    unit?: string | null;
+    quantity?: number | null;
+    unit_price?: number | null;
+    total_price: number;
+    is_edited?: boolean;
+    party?: { name: string } | null;
     [key: string]: unknown;
   };
   
