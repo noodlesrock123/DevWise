@@ -37,6 +37,50 @@ export async function PATCH(
     const body = await req.json();
     const supabase = createServerClient();
 
+    // Validate description is present
+    if (body.description !== undefined && !body.description?.trim()) {
+      return NextResponse.json(
+        { error: 'Description is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate total_price matches calculation
+    if (body.quantity !== undefined && body.unit_price !== undefined && body.total_price !== undefined) {
+      const expectedTotal = body.quantity * body.unit_price;
+      const difference = Math.abs(expectedTotal - body.total_price);
+
+      // Allow small rounding differences (less than 1 cent)
+      if (difference > 0.01) {
+        return NextResponse.json(
+          { error: `Total price ($${body.total_price}) does not match quantity (${body.quantity}) × unit price ($${body.unit_price}) = $${expectedTotal.toFixed(2)}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate numeric fields are valid numbers
+    if (body.quantity !== undefined && body.quantity !== null && isNaN(Number(body.quantity))) {
+      return NextResponse.json(
+        { error: 'Quantity must be a valid number' },
+        { status: 400 }
+      );
+    }
+
+    if (body.unit_price !== undefined && body.unit_price !== null && isNaN(Number(body.unit_price))) {
+      return NextResponse.json(
+        { error: 'Unit price must be a valid number' },
+        { status: 400 }
+      );
+    }
+
+    if (body.total_price !== undefined && body.total_price !== null && isNaN(Number(body.total_price))) {
+      return NextResponse.json(
+        { error: 'Total price must be a valid number' },
+        { status: 400 }
+      );
+    }
+
     const { data: current } = await supabase
       .from('line_items')
       .select('*')
@@ -53,6 +97,7 @@ export async function PATCH(
 
     const updateData: Record<string, unknown> = { ...body };
 
+    // Preserve original values on first edit
     if (!current.is_edited) {
       updateData.is_edited = true;
       updateData.original_description = current.description;

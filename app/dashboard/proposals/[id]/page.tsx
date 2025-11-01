@@ -37,6 +37,9 @@ export default async function ProposalPage({
     .order('location')
     .order('category');
 
+  // Get project_id from proposal for edit modal
+  const projectId = proposal.project_id;
+
   type LineItem = {
     id: string;
     location: string | null;
@@ -48,9 +51,10 @@ export default async function ProposalPage({
     total_price: number;
     is_edited?: boolean;
     party?: { name: string } | null;
+    party_id?: string | null;
     [key: string]: unknown;
   };
-  
+
   const grouped: Record<string, LineItem[]> = {};
   lineItems?.forEach((item) => {
     const loc = item.location || 'Uncategorized';
@@ -133,7 +137,7 @@ export default async function ProposalPage({
                       </td>
                     </tr>
                     {grouped[location].map((item) => (
-                      <LineItemRow key={item.id} item={item} />
+                      <LineItemRow key={item.id} item={item} projectId={projectId} />
                     ))}
                   </React.Fragment>
                 ))}

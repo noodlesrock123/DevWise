@@ -1,9 +1,10 @@
 import { requireAuth, createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-// @ts-expect-error - pdf-parse has incorrect TypeScript definitions
-import pdf from 'pdf-parse';
 import * as XLSX from 'xlsx';
+
+// Force Node.js runtime for pdf-parse
+export const runtime = 'nodejs';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -51,6 +52,8 @@ export async function POST(
     let extractedText = '';
 
     if (proposal.file_type === 'pdf') {
+      // Use require for pdf-parse in Node.js runtime
+      const pdf = require('pdf-parse');
       const buffer = await fileData.arrayBuffer();
       const pdfData = await pdf(Buffer.from(buffer));
       extractedText = pdfData.text;

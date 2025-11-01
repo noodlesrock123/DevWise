@@ -12,7 +12,9 @@ export default function UploadProposalButton({
   const [file, setFile] = useState<File | null>(null);
   const [contractorName, setContractorName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
 
   async function handleUpload() {
@@ -23,36 +25,59 @@ export default function UploadProposalButton({
 
     setLoading(true);
     setError(null);
+    setSuccess(false);
 
     try {
+      // Step 1: Upload file
       const formData = new FormData();
       formData.append('file', file);
       formData.append('projectId', projectId);
       formData.append('contractorName', contractorName);
 
-      const res = await fetch('/api/proposals/upload', {
+      const uploadRes = await fetch('/api/proposals/upload', {
         method: 'POST',
         body: formData,
       });
 
-      if (!res.ok) {
-        const data = await res.json();
+      if (!uploadRes.ok) {
+        const data = await uploadRes.json();
         throw new Error(data.error || 'Upload failed');
       }
 
-      const { proposal } = await res.json();
+      const { proposal } = await uploadRes.json();
 
-      await fetch(`/api/proposals/${proposal.id}/extract`, {
+      // Step 2: Extract line items
+      setLoading(false);
+      setExtracting(true);
+
+      const extractRes = await fetch(`/api/proposals/${proposal.id}/extract`, {
         method: 'POST',
       });
 
-      setIsOpen(false);
-      router.refresh();
+      if (!extractRes.ok) {
+        const data = await extractRes.json();
+        throw new Error(data.error || 'Extraction failed');
+      }
+
+      await extractRes.json();
+
+      // Success!
+      setExtracting(false);
+      setSuccess(true);
+
+      // Show success message briefly, then close and refresh
+      setTimeout(() => {
+        setIsOpen(false);
+        setSuccess(false);
+        setFile(null);
+        setContractorName('');
+        router.refresh();
+      }, 2000);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
+      setError(err instanceof Error ? err.message : 'Operation failed');
       setLoading(false);
+      setExtracting(false);
     }
   }
 
@@ -76,48 +101,72 @@ export default function UploadProposalButton({
               </div>
             )}
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Contractor/Vendor Name
-                </label>
-                <input
-                  type="text"
-                  value={contractorName}
-                  onChange={(e) => setContractorName(e.target.value)}
-                  placeholder="e.g., VIP Structures"
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
+            {success && (
+              <div className="bg-green-50 text-green-700 p-3 rounded mb-4">
+                ✓ Extraction completed successfully!
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Proposal File (PDF or Excel)
-                </label>
-                <input
-                  type="file"
-                  accept=".pdf,.xlsx,.xls"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="w-full"
-                />
+            {extracting && (
+              <div className="bg-blue-50 text-blue-700 p-4 rounded mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-700"></div>
+                  <div>
+                    <p className="font-medium">Extracting line items...</p>
+                    <p className="text-sm">This may take 30-60 seconds. Please wait.</p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {!extracting && !success && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Contractor/Vendor Name
+                  </label>
+                  <input
+                    type="text"
+                    value={contractorName}
+                    onChange={(e) => setContractorName(e.target.value)}
+                    placeholder="e.g., VIP Structures"
+                    className="w-full px-3 py-2 border rounded-lg"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Proposal File (PDF or Excel)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".pdf,.xlsx,.xls"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="w-full"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-2 mt-6">
               <button
                 onClick={() => setIsOpen(false)}
-                disabled={loading}
-                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                disabled={loading || extracting}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
               </button>
-              <button
-                onClick={handleUpload}
-                disabled={loading || !file || !contractorName}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? 'Uploading...' : 'Upload & Extract'}
-              </button>
+              {!extracting && !success && (
+                <button
+                  onClick={handleUpload}
+                  disabled={loading || !file || !contractorName}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? 'Uploading...' : 'Upload & Extract'}
+                </button>
+              )}
             </div>
           </div>
         </div>
