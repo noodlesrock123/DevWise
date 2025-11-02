@@ -1,9 +1,27 @@
 import { requireAuth, createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
+import { rateLimit, rateLimitHeaders } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
   try {
     const user = await requireAuth();
+
+    // Rate limit: 10 uploads per hour per user
+    const rateLimitResult = rateLimit({
+      identifier: `upload:${user.id}`,
+      limit: 10,
+      window: 60 * 60 * 1000, // 1 hour
+    });
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many upload requests. Please try again later.' },
+        {
+          status: 429,
+          headers: rateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
     const formData = await req.formData();
     
     const file = formData.get('file') as File;
@@ -76,7 +94,10 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ proposal });
+    return NextResponse.json(
+      { proposal },
+      { headers: rateLimitHeaders(rateLimitResult) }
+    );
 
   } catch (error) {
     console.error('Upload error:', error);
