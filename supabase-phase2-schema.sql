@@ -18,6 +18,7 @@ CREATE TABLE api_usage (
   -- Context
   proposal_id UUID REFERENCES proposals(id) ON DELETE SET NULL,
   line_item_id UUID REFERENCES line_items(id) ON DELETE SET NULL,
+  project_id UUID REFERENCES projects(id) ON DELETE SET NULL, -- Phase 3 compatibility
 
   -- Metadata
   request_data JSONB,
@@ -37,7 +38,8 @@ CREATE TABLE user_budget (
 
   -- Monthly tracking
   monthly_spent DECIMAL(10,2) DEFAULT 0,
-  monthly_limit DECIMAL(10,2) DEFAULT 100.00
+  monthly_limit DECIMAL(10,2) DEFAULT 100.00,
+  last_reset_month TEXT -- Format: 'YYYY-MM'
 );
 
 -- Research jobs table
@@ -131,6 +133,7 @@ CREATE TABLE chat_messages (
 -- Indexes
 CREATE INDEX idx_api_usage_user ON api_usage(user_id);
 CREATE INDEX idx_api_usage_date ON api_usage(created_at);
+CREATE INDEX idx_api_usage_project ON api_usage(project_id); -- Phase 3 compatibility
 CREATE INDEX idx_research_jobs_item ON research_jobs(line_item_id);
 CREATE INDEX idx_research_jobs_user ON research_jobs(user_id);
 CREATE INDEX idx_benchmarks_category ON cost_benchmarks(item_category);
@@ -152,6 +155,10 @@ CREATE POLICY "Users can view their API usage"
   ON api_usage FOR SELECT
   USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can insert their API usage"
+  ON api_usage FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
 CREATE POLICY "Users can view their budget"
   ON user_budget FOR SELECT
   USING (auth.uid() = user_id);
@@ -162,6 +169,14 @@ CREATE POLICY "Users can update their budget"
 
 CREATE POLICY "Users can view their research jobs"
   ON research_jobs FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their research jobs"
+  ON research_jobs FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their research jobs"
+  ON research_jobs FOR UPDATE
   USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can view their ratings"

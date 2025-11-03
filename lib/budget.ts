@@ -79,6 +79,7 @@ export async function checkAndUpdateBudget(
         monthly_limit: 100.0,
         monthly_spent: 0,
         last_reset_date: new Date().toISOString().split('T')[0],
+        last_reset_month: new Date().toISOString().substring(0, 7), // "YYYY-MM"
       })
       .select()
       .single();
@@ -95,17 +96,31 @@ export async function checkAndUpdateBudget(
 
   // Check if need to reset daily spending
   const today = new Date().toISOString().split('T')[0];
-  if (budget.last_reset_date !== today) {
+  const currentMonth = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+
+  if (budget.last_reset_date !== today || budget.last_reset_month !== currentMonth) {
+    const updates: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    // Reset daily if new day
+    if (budget.last_reset_date !== today) {
+      updates.daily_spent = 0;
+      updates.last_reset_date = today;
+      budget.daily_spent = 0;
+    }
+
+    // Reset monthly if new month
+    if (budget.last_reset_month !== currentMonth) {
+      updates.monthly_spent = 0;
+      updates.last_reset_month = currentMonth;
+      budget.monthly_spent = 0;
+    }
+
     await supabase
       .from('user_budget')
-      .update({
-        daily_spent: 0,
-        last_reset_date: today,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updates)
       .eq('user_id', userId);
-
-    budget.daily_spent = 0;
   }
 
   // Check daily limit
@@ -180,6 +195,7 @@ export interface ApiUsageLog {
   estimated_cost: number;
   proposal_id?: string;
   line_item_id?: string;
+  project_id?: string; // Phase 3 compatibility
   request_data?: any;
   response_data?: any;
 }
@@ -202,6 +218,7 @@ export async function logApiUsage(
     estimated_cost: log.estimated_cost,
     proposal_id: log.proposal_id || null,
     line_item_id: log.line_item_id || null,
+    project_id: log.project_id || null, // Phase 3 compatibility
     request_data: log.request_data || null,
     response_data: log.response_data || null,
   });
