@@ -3,6 +3,12 @@ import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import * as XLSX from 'xlsx';
 import { rateLimit, rateLimitHeaders } from '@/lib/rate-limit';
+import {
+  checkAndUpdateBudget,
+  recordSpending,
+  logApiUsage,
+  calculateAnthropicCost,
+} from '@/lib/budget';
 
 // Force Node.js runtime for pdf-parse
 export const runtime = 'nodejs';
@@ -70,6 +76,23 @@ export async function POST(
       throw new Error('Failed to download file');
     }
 
+    // PHASE 2: Budget check before expensive operation
+    // Estimate cost (typical PDF extraction: $0.30-0.70)
+    const estimatedCost = 0.7;
+
+    const budgetCheck = await checkAndUpdateBudget(
+      supabase,
+      user.id,
+      estimatedCost
+    );
+
+    if (!budgetCheck.allowed) {
+      return NextResponse.json(
+        { error: budgetCheck.reason },
+        { status: 402 } // Payment Required
+      );
+    }
+
     let extractedText = '';
 
     if (proposal.file_type === 'pdf') {
@@ -86,9 +109,11 @@ export async function POST(
       extractedText = XLSX.utils.sheet_to_csv(sheet);
     }
 
+    // Send to Claude for structured extraction (with timeout protection)
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
+      timeout: 120000, // 2 minutes timeout
       messages: [
         {
           role: 'user',
@@ -130,6 +155,31 @@ IMPORTANT:
       ],
     });
 
+    // PHASE 2: Track actual API cost and update budget
+    const actualCost = calculateAnthropicCost({
+      input_tokens: message.usage.input_tokens,
+      output_tokens: message.usage.output_tokens,
+    });
+
+    // Record spending
+    await recordSpending(supabase, user.id, actualCost);
+
+    // Log API usage
+    await logApiUsage(supabase, {
+      user_id: user.id,
+      operation_type: 'extraction',
+      api_provider: 'anthropic',
+      tokens_used: message.usage.input_tokens + message.usage.output_tokens,
+      estimated_cost: actualCost,
+      proposal_id: proposalId,
+      request_data: {
+        file_type: proposal.file_type,
+        file_name: proposal.file_name,
+      },
+      response_data: {
+        line_items_count: 0, // Will update below
+      },
+    });
 
     const responseText = message.content[0].type === 'text' 
       ? message.content[0].text 
@@ -219,6 +269,7 @@ IMPORTANT:
         success: true,
         line_items_count: extracted.line_items.length,
         total_amount: totalAmount,
+        api_cost: actualCost, // Include cost in response
       },
       { headers: rateLimitHeaders(rateLimitResult) }
     );
