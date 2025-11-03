@@ -2,6 +2,7 @@ import { requireAuth, createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import * as XLSX from 'xlsx';
+import { rateLimit, rateLimitHeaders } from '@/lib/rate-limit';
 
 // Force Node.js runtime for pdf-parse
 export const runtime = 'nodejs';
@@ -18,6 +19,26 @@ export async function POST(
     const user = await requireAuth();
     const proposalId = params.id;
     const supabase = createServerClient();
+
+    // Rate limit: 5 extractions per hour per user (API calls are expensive)
+    const rateLimitResult = rateLimit({
+      identifier: `extract:${user.id}`,
+      limit: 5,
+      window: 60 * 60 * 1000, // 1 hour
+    });
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many extraction requests. Please try again later.',
+          reset: new Date(rateLimitResult.reset).toISOString(),
+        },
+        {
+          status: 429,
+          headers: rateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
 
     const { data: proposal, error: proposalError } = await supabase
       .from('proposals')
@@ -193,11 +214,14 @@ IMPORTANT:
       })
       .eq('id', proposalId);
 
-    return NextResponse.json({
-      success: true,
-      line_items_count: extracted.line_items.length,
-      total_amount: totalAmount,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        line_items_count: extracted.line_items.length,
+        total_amount: totalAmount,
+      },
+      { headers: rateLimitHeaders(rateLimitResult) }
+    );
 
   } catch (error) {
     console.error('Extraction error:', error);
