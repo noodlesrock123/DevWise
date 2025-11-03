@@ -1,7 +1,6 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
-import LineItemRow from '@/components/LineItemRow';
-import React from 'react';
+import LineItemsTable from '@/components/LineItemsTable';
 
 export default async function ProposalPage({
   params,
@@ -39,28 +38,6 @@ export default async function ProposalPage({
 
   // Get project_id from proposal for edit modal
   const projectId = proposal.project_id;
-
-  type LineItem = {
-    id: string;
-    location: string | null;
-    category?: string | null;
-    description: string;
-    unit?: string | null;
-    quantity?: number | null;
-    unit_price?: number | null;
-    total_price: number;
-    is_edited?: boolean;
-    party?: { name: string } | null;
-    party_id?: string | null;
-    [key: string]: unknown;
-  };
-
-  const grouped: Record<string, LineItem[]> = {};
-  lineItems?.forEach((item) => {
-    const loc = item.location || 'Uncategorized';
-    if (!grouped[loc]) grouped[loc] = [];
-    grouped[loc].push(item as LineItem);
-  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -101,49 +78,7 @@ export default async function ProposalPage({
         )}
 
         {lineItems && lineItems.length > 0 && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Description
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Party
-                  </th>
-                  <th className="px-4 py-3 text-right text-sm font-medium">
-                    Qty
-                  </th>
-                  <th className="px-4 py-3 text-right text-sm font-medium">
-                    Unit Price
-                  </th>
-                  <th className="px-4 py-3 text-right text-sm font-medium">
-                    Total
-                  </th>
-                  <th className="px-4 py-3 text-center text-sm font-medium">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.keys(grouped).map((location) => (
-                  <React.Fragment key={location}>
-                    <tr className="bg-gray-100">
-                      <td
-                        colSpan={6}
-                        className="px-4 py-2 font-bold text-sm"
-                      >
-                        {location}
-                      </td>
-                    </tr>
-                    {grouped[location].map((item) => (
-                      <LineItemRow key={item.id} item={item} projectId={projectId} />
-                    ))}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <LineItemsTable lineItems={lineItems as any} projectId={projectId} />
         )}
       </main>
     </div>

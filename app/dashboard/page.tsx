@@ -23,7 +23,17 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">DevWise</h1>
+          <div className="flex items-center gap-8">
+            <h1 className="text-2xl font-bold">DevWise</h1>
+            <div className="flex gap-4">
+              <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
+                Projects
+              </Link>
+              <Link href="/dashboard/budget" className="text-sm text-gray-600 hover:text-gray-900">
+                Budget
+              </Link>
+            </div>
+          </div>
           <form action="/api/auth/signout" method="post">
             <button className="text-sm text-gray-600 hover:text-gray-900">
               Sign Out
