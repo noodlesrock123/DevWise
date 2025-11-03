@@ -138,16 +138,46 @@ Create storage bucket named `proposals` (private) in Supabase dashboard.
 3. Verify User B cannot see User A's data
 4. All queries automatically filtered by RLS policies
 
+## Error Handling
+
+### Error Boundaries
+Application includes error boundaries for graceful error recovery:
+- `app/error.tsx`: Global error boundary
+- `app/dashboard/error.tsx`: Dashboard-specific errors
+- `app/dashboard/projects/error.tsx`: Project page errors
+
+Each provides user-friendly error messages, retry options, and navigation back to safety.
+
+### Rate Limiting
+Protected expensive API operations with in-memory rate limiting (`lib/rate-limit.ts`):
+- Upload route: 10 uploads per hour per user
+- Extract route: 5 extractions per hour per user
+- Returns HTTP 429 with `X-RateLimit-*` headers
+
+**Note:** In-memory rate limiting is fine for single-instance deployments. For production with multiple servers, migrate to Redis or Upstash Rate Limit.
+
+## TypeScript Types
+
+Comprehensive type definitions in `lib/types.ts`:
+- Database models (Project, Proposal, LineItem, Party)
+- API response types
+- Form types
+- Claude API extraction types
+
 ## Phase 1 Status
 
 ✅ Multi-user auth with RLS
 ✅ Projects with site characteristics
 ✅ Parties management
 ✅ Proposal upload to Supabase Storage
-✅ PDF/Excel extraction via Claude API
+✅ PDF/Excel extraction via Claude API (with 2-minute timeout)
 ✅ Party attribution system
 ✅ Edit history tracking
 ✅ Line items CRUD
 ✅ Responsive UI
+✅ Error boundaries (global + dashboard)
+✅ Rate limiting (prevents API abuse)
+✅ TypeScript type definitions
+✅ Properly typed middleware
 
 ⚠️ API cost tracking intentionally deferred to Phase 2

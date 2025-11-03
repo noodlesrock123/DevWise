@@ -86,9 +86,11 @@ export async function POST(
       extractedText = XLSX.utils.sheet_to_csv(sheet);
     }
 
+    // Send to Claude for structured extraction (with timeout protection)
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
+      timeout: 120000, // 2 minutes timeout
       messages: [
         {
           role: 'user',
